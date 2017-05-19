@@ -1,8 +1,8 @@
 <template>
     <div>
       <div>{{ transfer.fileName }}</div>
-      <progress-bar type="line" ref="bar" class=".progress-bar-striped" :options="options"></progress-bar>
-
+      <progress-bar type="line" ref="bar" :options="options"></progress-bar>
+      <div>{{ speedString }}</div>
     </div>
 </template>
 
@@ -15,17 +15,31 @@
           'transfer.progressedSize': function (value) {
             this.$refs.bar.animate(value / this.$props.transfer.totalSize, {duration: 100})
             this.$refs.bar.setText(this.formatSize(value, this.$props.transfer.totalSize))
+          },
+          'transfer.performanceChunks': function (value) {
+              let speed = 0; //Bytes/second
+            value.forEach(function (curr, index, array){
+              speed += curr.bytesDelta / (curr.timeDelta/1000);
+            });
+            speed = speed / value.length;
+            this.$data.transferSpeed = speed;
           }
+        },
+        computed:{
+            speedString: function () {
+                let category = this.getCategoryForFileSize(this.$data.transferSpeed);
+                return this.formatBytes(this.$data.transferSpeed, category) + category.text + "/s"
+            }
+
         },
         data () {
             return {
+              transferSpeed: undefined,
+              remainingTime: undefined,
               options: {
                 strokeWidth: 1,
                 from: { color: '#eef441' },
                 to: { color: '#8ff442' },
-                step: function(state, circle, attachment) {
-                  circle.path.setAttribute('stroke', state.color);
-                },
               }
             }
         },
@@ -39,15 +53,15 @@
 
         getCategoryForFileSize: function (bytes) {
           let categories = {
-            KB: {value: 0, text: 'KB', divider: 10E3},
-            MB: {value: 1, text: 'MB', divider: 10E6},
-            GB: {value: 2, text: 'GB', divider: 10E9}
+            KB: {value: 0, text: 'KB', divider: 1024},
+            MB: {value: 1, text: 'MB', divider: 1024*1024},
+            GB: {value: 2, text: 'GB', divider: 1024*1024*1024}
           };
           let category;
           //Calculate max size category
-          if (bytes / 10E9 > 1){
+          if (bytes / categories.GB.divider > 1){
             category = categories.GB;
-          }else if (bytes / 10E6 > 1){
+          }else if (bytes / categories.MB.divider > 1){
             category = categories.MB;
           }else{
             category = categories.KB;

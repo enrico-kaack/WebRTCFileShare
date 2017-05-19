@@ -83,6 +83,7 @@ export default {
           progressedSize: 0,
           fileName: String,
           peerName: String,
+          performanceChunks: [],
           finished: false
         };
         this.$data.peers.forEach(function (curr, index, array) {
@@ -90,11 +91,19 @@ export default {
           transfer.fileName = file[0].name;
           transfer.totalSize = file[0].size;
           v.$data.transfers.push(transfer);
-          console.log(file)
-          console.log(transfer)
+          let lastTimeStamp = Date.now();
           var sender = curr.sendFile(file[0]);
           sender.on('progress', function (bytesSend) {
-            transfer.progressedSize = bytesSend;
+              //add data chunk to performance
+              var timeDelta = Date.now() - lastTimeStamp;
+              var bytesDelta = bytesSend - transfer.progressedSize;
+              lastTimeStamp = Date.now();
+              if(transfer.performanceChunks >= 20){
+                  transfer.performanceChunks.shift();
+              }
+              transfer.performanceChunks.push({timeDelta: timeDelta, bytesDelta: bytesDelta});
+
+              transfer.progressedSize = bytesSend;
           })
           sender.on('sentFile', function () {
             transfer.finished = true;
@@ -141,13 +150,23 @@ export default {
             progressedSize: 0,
             fileName: String,
             peerName: String,
+            performanceChunks: [],
             finished: false
           };
           transfer.fileName = metadata.name;
           transfer.direction = 'in';
           transfer.totalSize = metadata.size;
           this.$data.transfers.push(transfer);
+          let lastTimeStamp = Date.now();
           receiver.on('progress', function (bytesReceived) {
+            var timeDelta = Date.now() - lastTimeStamp;
+            var bytesDelta = bytesReceived - transfer.progressedSize;
+            lastTimeStamp = Date.now();
+            if(transfer.performanceChunks.length >= 20){
+              transfer.performanceChunks.shift();
+            }
+            transfer.performanceChunks.push({timeDelta: timeDelta, bytesDelta: bytesDelta});
+
             transfer.progressedSize = bytesReceived;
         });
         // get notified when file is done
