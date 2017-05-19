@@ -14,14 +14,15 @@ export default {
       return {
         roomId: '',
         rtc: Object,
-        peers: []
+        peers: [],
+        transfers: []
       }
   },
   created: function () {
     this.initWebRTC();
 
     this.$data.roomId = this.getRoomId();
-    console.log()
+    console.log('prarameter room id', this.$data.roomId)
     if (this.$data.roomId == null){
         this.createRoom();
     }else{
@@ -75,7 +76,7 @@ export default {
       },
 
       sendFile: function (file){
-          console.log(file[0])
+        console.log("peer list", this.$data.peers)
         var vm = this;
         this.$data.peers.forEach(function (curr, index, array) {
             console.log("send for", curr)
@@ -95,15 +96,50 @@ export default {
       },
 
       peerCreated: function (peer) {
+        var FileTransfer = require('filetransfer');
+
         this.$data.peers.push(peer)
+        peer.on('channelOpen', function (channel) {
+          if (channel.protocol === 'https://simplewebrtc.com/protocol/filetransfer#inband-v1') {
+            channel.onmessage = function (event) {
+              console.log('inbound message')
+              console.log('event data', event.data)
+              var metadata = JSON.parse(event.data);
+              console.log('metadata', metadata)
+              var receiver = new FileTransfer.Receiver();
+              receiver.receive(metadata, channel);
+              peer.emit('fileTransfer', metadata, receiver);
+              receiver.on('receivedFile', function (file, metadata) {
+                receiver.channel.close();
+              });
+            };
+          }
+        });
+
         //this.$data.peers = peer
         console.log('Detected new peer', peer)
       },
 
+
       incomingFileTransfer: function (metadata, receiver) {
-        console.log('incoming filetransfer', metadata.name, metadata);
-        receiver.on('progress', function (bytesReceived) {
-          console.log('receive progress', bytesReceived, 'out of', metadata.size);
+          let v = this;
+          let transfer = {
+            direction: String,
+            totalSize: 0,
+            progressedSize: 0,
+            fileName: String,
+            peerName: String,
+            finished: false
+          };
+          transfer.fileName = metadata.name;
+          transfer.totalSize = metadata.size;
+          console.log('metadata incoming', metadata)
+          this.$data.transfers.push(transfer);
+          console.log('incoming filetransfer', receiver, metadata);
+          receiver.on('progress', function (bytesReceived) {
+            console.log('receive progress', bytesReceived, 'out of', metadata.size);
+            transfer.progressedSize = bytesReceived;
+            console.log(v.$data.transfers[0].progressedSize)
         });
         // get notified when file is done
         receiver.on('receivedFile', function (file, metadata) {
@@ -112,7 +148,6 @@ export default {
           // close the channel
           receiver.channel.close();
         });
-        //filelist.appendChild(item);
       }
 
 

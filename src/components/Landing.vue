@@ -2,6 +2,11 @@
   <div>
     <input v-on:change="fileSelected" type="file">
     <button v-on:click="send">Senden</button>
+
+    <div>
+
+
+    </div>
   </div>
 </template>
 
