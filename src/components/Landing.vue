@@ -1,20 +1,23 @@
 <template>
   <div>
-    <input v-on:change="fileSelected" type="file">
-    <button v-on:click="send">Senden</button>
-
     <div>
-
+      <input v-on:change="fileSelected" type="file">
+      <button v-on:click="send">Senden</button>
+    </div>
+    <div>
+        <transfer-item v-for="(transfer, index) in transfers" :key="index" :transfer="transfer" :index="index"></transfer-item>
 
     </div>
   </div>
 </template>
 
 <script>
+  import TransferItem from "./TransferElement";
   let vm;
 export default {
+  components: {TransferItem},
   name: 'landing',
-  props: ['rtc'],
+  props: ['rtc', 'transfers'],
   data () {
     return {
       remoteId: '',

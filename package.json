@@ -15,6 +15,7 @@
     "peerjs": "^0.3.14",
     "simplewebrtc": "^2.2.3",
     "vue": "^2.2.6",
+    "vue-progress": "^0.2.1",
     "vue-router": "^2.3.1"
   },
   "devDependencies": {

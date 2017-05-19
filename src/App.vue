@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div>{{roomId}}</div>
-    <router-view :rtc="rtc" v-on:send="sendFile"></router-view>
+    <router-view :rtc="rtc" :transfers="transfers" v-on:send="sendFile"></router-view>
   </div>
 </template>
 
@@ -76,16 +76,28 @@ export default {
       },
 
       sendFile: function (file){
-        console.log("peer list", this.$data.peers)
-        var vm = this;
+        let v = this;
+        let transfer = {
+          direction: String,
+          totalSize: 0,
+          progressedSize: 0,
+          fileName: String,
+          peerName: String,
+          finished: false
+        };
         this.$data.peers.forEach(function (curr, index, array) {
-            console.log("send for", curr)
+          transfer.direction = 'out',
+          transfer.fileName = file[0].name;
+          transfer.totalSize = file[0].size;
+          v.$data.transfers.push(transfer);
+          console.log(file)
+          console.log(transfer)
           var sender = curr.sendFile(file[0]);
           sender.on('progress', function (bytesSend) {
-            console.log(bytesSend)
+            transfer.progressedSize = bytesSend;
           })
           sender.on('sentFile', function () {
-            console.log('successfull send')
+            transfer.finished = true;
           });
         })
 
@@ -132,18 +144,15 @@ export default {
             finished: false
           };
           transfer.fileName = metadata.name;
+          transfer.direction = 'in';
           transfer.totalSize = metadata.size;
-          console.log('metadata incoming', metadata)
           this.$data.transfers.push(transfer);
-          console.log('incoming filetransfer', receiver, metadata);
           receiver.on('progress', function (bytesReceived) {
-            console.log('receive progress', bytesReceived, 'out of', metadata.size);
             transfer.progressedSize = bytesReceived;
-            console.log(v.$data.transfers[0].progressedSize)
         });
         // get notified when file is done
         receiver.on('receivedFile', function (file, metadata) {
-          console.log('received file', metadata.name, metadata.size);
+          transfer.finished = true;
 
           // close the channel
           receiver.channel.close();
